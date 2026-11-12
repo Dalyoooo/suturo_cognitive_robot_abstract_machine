@@ -6,6 +6,9 @@ import os
 import sys
 from dataclasses import dataclass
 
+import numpy
+from sensor_msgs.msg import CameraInfo
+
 from robokudo.analysis_engine import AnalysisEngineInterface
 from robokudo.annotators.collection_reader import CollectionReaderAnnotator
 from robokudo.annotators.detected_objects_announcer import DetectedObjectsAnnouncer
@@ -31,7 +34,18 @@ class AnalysisEngine(AnalysisEngineInterface):
         return "live_yolo"
 
     def implementation(self) -> Pipeline:
-        camera = CollectionReaderDescriptorFactory.create_descriptor("hsr_ros2")
+        kinect_info = CameraInfo(
+            width=640,
+            height=480,
+            k=[525.0, 0.0, 319.5, 0.0, 525.0, 239.5, 0.0, 0.0, 1.0],
+            p=[525.0, 0.0, 319.5, 0.0, 0.0, 525.0, 239.5, 0.0, 0.0, 0.0, 1.0, 0.0],
+        )
+        camera = CollectionReaderDescriptorFactory.create_descriptor(
+            "opencv",
+            device=2,
+            camera_info=kinect_info,
+            depth=numpy.full((480, 640), 1000, dtype=numpy.uint16),
+        )
         yolo = YoloAnnotator.Descriptor()
         yolo.parameters.pretrained_model = "ultimate_model_v8_1.26.2.pt"
         yolo.parameters.threshold = 0.6
